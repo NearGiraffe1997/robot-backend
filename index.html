@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Control del Robot – Estación Geoespacial</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<style>
+    body {
+        background: #0f0f0f;
+        color: white;
+        font-family: Arial;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+
+    h1 {
+        background: #1a1a1a;
+        padding: 15px;
+        margin: 0;
+        font-size: 26px;
+        border-bottom: 2px solid #333;
+    }
+
+    .container {
+        width: 90%;
+        margin: auto;
+        margin-top: 20px;
+    }
+
+    .controls {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    button {
+        background: #007bff;
+        border: none;
+        padding: 15px 25px;
+        font-size: 18px;
+        color: white;
+        border-radius: 10px;
+        margin: 5px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #0056b3;
+    }
+
+    .modo {
+        background: #28a745;
+    }
+
+    #map {
+        height: 300px;
+        width: 90%;
+        margin: auto;
+        margin-top: 20px;
+        border-radius: 10px;
+        border: 3px solid #333;
+    }
+</style>
+</head>
+
+<body>
+<h1>Panel de Control – Robot Explorador</h1>
+
+<div class="container">
+
+    <h2>📡 Modo Manual</h2>
+    <div class="controls">
+
+        <button onclick="enviar('MAN_UP')">⬆ Adelante</button>
+
+        <div>
+            <button onclick="enviar('MAN_LEFT')">⬅ Izquierda</button>
+            <button onclick="enviar('MAN_STOP')">⛔ Alto</button>
+            <button onclick="enviar('MAN_RIGHT')">➡ Derecha</button>
+        </div>
+
+        <button onclick="enviar('MAN_DOWN')">⬇ Atrás</button>
+    </div>
+
+    <h2>⚙ Modos Automáticos</h2>
+    <div class="controls">
+        <button class="modo" onclick="enviar('SET_MODE_0')">Sigue Líneas</button>
+        <button class="modo" onclick="enviar('SET_MODE_1')">Evita Obstáculos</button>
+        <button class="modo" onclick="enviar('SET_MODE_2')">Modo Manual</button>
+    </div>
+
+    <h2>🌎 Localización del Robot</h2>
+    <div id="map"></div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+// =============================================
+// CONFIGURACIÓN DEL BACKEND (NodeJS local)
+// =============================================
+const API = "http://localhost:3000";
+
+// =============================================
+// FUNCIÓN PARA ENVIAR COMANDOS
+// =============================================
+function enviar(cmd) {
+    fetch(API + "/api/robot/command", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({cmd: cmd})
+    });
+}
+
+// =============================================
+// MAPA LEAFLET
+// =============================================
+var map = L.map('map').setView([19.245, -103.72], 14);
+
+// Capa base
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+}).addTo(map);
+
+// Marcador del robot
+var robotMarker = L.marker([19.245, -103.72]).addTo(map);
+
+// Actualización frecuente de ubicación
+setInterval(() => {
+    fetch(API + "/api/robot/dataLast")
+        .then(res => res.json())
+        .then(data => {
+            if (!data.lat) return;
+
+            robotMarker.setLatLng([data.lat, data.lng]);
+            map.setView([data.lat, data.lng]);
+        });
+}, 3000);
+</script>
+
+</body>
+</html>
